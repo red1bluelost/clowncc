@@ -1,0 +1,11 @@
+[package]
+name = "clown_token"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+bitflags = "2.4.0"
+unicode-ident = "1.0.11"
+
+[dev-dependencies]
+expect-test = "1.4.0"
