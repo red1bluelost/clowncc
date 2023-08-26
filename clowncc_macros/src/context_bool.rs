@@ -1,8 +1,34 @@
+/// Defines an enumeration with two values, `Yes` and `No`. Meant to act as
+/// a self documenting boolean. The name provided should be an option action
+/// which functions may perform. This way the call sight has more context
+/// that a regular `true`/`false`.
+///
+/// # Example
+/// ```rust
+/// clowncc_macros::define_yes_no!{
+///     pub ClearFirst;
+/// }
+///
+/// pub fn add_n_zeros(n: usize, clear_first: ClearFirst, v: &mut Vec<i32>) {
+///     if clear_first.is_yes() {
+///         v.clear();
+///     }
+///     v.append(&mut vec![0; n]);
+/// }
+///
+/// let mut v = vec![1, 2, 3];
+///
+/// add_n_zeros(5, ClearFirst::No, &mut v);
+/// assert_eq!(v, vec![1, 2, 3, 0, 0, 0, 0, 0]);
+///
+/// add_n_zeros(5, ClearFirst::Yes, &mut v);
+/// assert_eq!(v, vec![0, 0, 0, 0, 0]);
+/// ```
 #[macro_export]
 macro_rules! define_yes_no {
     (
         $(#[$attrs:meta])*
-        $access:vis $name:ident
+        $access:vis $name:ident;
     ) => {
         $(#[$attrs])*
         #[must_use]

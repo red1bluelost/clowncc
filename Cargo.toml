@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "clowncc_lex",
   "clowncc_macros",
+  "clowncc_parse",
   "clowncc_token",
   "clowncc_version",
 ]

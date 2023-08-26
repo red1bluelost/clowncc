@@ -32,11 +32,16 @@ impl QuoteType {
     }
 }
 
-clowncc_macros::define_yes_no!{
-    EatSlash
+clowncc_macros::define_yes_no! {
+    /// When parsing a universal character or escaped newline, the caller may
+    /// want the initial backslash consumed or not consumed during the
+    /// speculative parse.
+    EatSlash;
 }
-clowncc_macros::define_yes_no!{
-    ExpectHeader
+clowncc_macros::define_yes_no! {
+    /// Tokenizing has no state so the caller must choose when to treat quotes
+    /// `"` or angle brackets `<` as headers or regular tokens.
+    ExpectHeader;
 }
 
 #[derive(Clone)]

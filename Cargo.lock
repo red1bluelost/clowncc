@@ -20,6 +20,10 @@ name = "clowncc_macros"
 version = "0.1.0"
 
 [[package]]
+name = "clowncc_parse"
+version = "0.1.0"
+
+[[package]]
 name = "clowncc_token"
 version = "0.0.0"
 dependencies = [
