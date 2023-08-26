@@ -1,8 +1,10 @@
 /// Generate enum with predicates, string accessors, and from string conversion.
 // TODO: Move into its own support crate
 macro_rules! define_info_enum {
-    ($(#[$attrs:meta])*
-     $enum_id:ident: $([$id_snake:ident, $name_str:expr]),* $(,)?) => {
+    (
+        $(#[$attrs:meta])*
+        $enum_id:ident: $([$id_snake:ident, $name_str:expr]),* $(,)?
+    ) => {
         ::paste::paste! {
             $(#[$attrs])*
             #[derive(Clone, Copy, Debug, Eq, PartialEq)]

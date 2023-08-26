@@ -32,27 +32,11 @@ impl QuoteType {
     }
 }
 
-// TODO: Turn into macro in support crate
-#[derive(Copy, Clone, Eq, PartialEq)]
-enum EatSlash {
-    Yes,
-    No,
+clown_macros::define_yes_no!{
+    EatSlash
 }
-impl EatSlash {
-    fn is_yes(self) -> bool {
-        self == EatSlash::Yes
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq)]
-enum ExpectHeader {
-    Yes,
-    No,
-}
-impl ExpectHeader {
-    fn is_yes(self) -> bool {
-        self == ExpectHeader::Yes
-    }
+clown_macros::define_yes_no!{
+    ExpectHeader
 }
 
 #[derive(Clone)]
@@ -64,6 +48,7 @@ struct TokenBuilder {
 impl TokenBuilder {
     fn set_newline(&mut self) {
         self.flags |= TokenFlags::NEWLINE;
+        let _ = true < false;
     }
 
     fn set_univ_char(&mut self) {

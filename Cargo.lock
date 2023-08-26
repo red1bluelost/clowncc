@@ -10,16 +10,21 @@ checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
 
 [[package]]
 name = "clown_lex"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "bitflags",
 ]
+
+[[package]]
+name = "clown_macros"
+version = "0.1.0"
 
 [[package]]
 name = "clown_token"
 version = "0.0.0"
 dependencies = [
  "bitflags",
+ "clown_macros",
  "clown_version",
  "expect-test",
  "unicode-ident",
