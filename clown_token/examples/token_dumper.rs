@@ -20,7 +20,14 @@ fn main() {
         std::fs::read_to_string(file_name).unwrap()
     };
 
-    let mut cursor = Cursor::new(&code);
+    let std_vers = std::env::args()
+        .nth(2)
+        .as_deref()
+        .unwrap_or("c++26")
+        .parse()
+        .expect("Unknown language");
+
+    let mut cursor = Cursor::new(&code, std_vers);
 
     let mut parse_header = ParseHeader::None;
     let mut token_start = 0;
@@ -29,15 +36,15 @@ fn main() {
     } else {
         cursor.next_token()
     } {
-        let len = token.length as usize;
+        let len = token.length() as usize;
         let code_slice = &code[token_start..token_start + len];
         println!("{:?} = (\"{}\")", token, code_slice);
         token_start += len;
 
-        match token.kind {
+        match token.kind() {
             TokenKind::BlockComment
             | TokenKind::Whitespace {
-                no_bare_newline: true,
+                splits_lines: false,
             } => continue,
             TokenKind::Pound if parse_header == ParseHeader::None => {
                 parse_header = ParseHeader::Pound;

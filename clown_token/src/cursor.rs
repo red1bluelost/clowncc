@@ -1,20 +1,38 @@
+use QuoteType::*;
+
 use crate::token::{LitType, NumberBase, RawStrErr, Token, TokenFlags};
 use crate::{CharInfo, DCharSeq, TokenKind};
 
 use std::str::Chars;
 
+use clown_version::StdVersion;
+
 type TK = TokenKind;
 
+/// Representing a single character delimited string
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum QuoteType {
-    Str,
-    CharSeq,
+    /// Include string for system header files: `<file>`
     SysHeader,
+    /// Include string for regular header files: `"file"`
     Header,
+    /// String literal (not raw): `"chars"`
+    String,
+    /// Character sequence: `'chars'`
+    CharSeq,
 }
-use QuoteType::*;
 
-// TODO: Turn into macro
+impl QuoteType {
+    /// Checks if a character is the terminator for the given quote type
+    const fn matches_terminator(self, c: char) -> bool {
+        matches!(
+            (self, c),
+            (SysHeader, '>') | (String | Header, '"') | (CharSeq, '\'')
+        )
+    }
+}
+
+// TODO: Turn into macro in support crate
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum EatSlash {
     Yes,
@@ -52,29 +70,32 @@ impl TokenBuilder {
         self.flags |= TokenFlags::UNIV_CHAR;
     }
 
+    fn set_unterminated(&mut self) {
+        self.flags |= TokenFlags::UNTERMINATED;
+    }
+
     const fn build(self, kind: TokenKind, end_len_from_end: u32) -> Token {
         let Self {
             start_len_from_end,
             flags,
         } = self;
-        Token {
-            kind,
-            length: start_len_from_end - end_len_from_end,
-            flags,
-        }
+        Token::new(kind, start_len_from_end - end_len_from_end, flags)
     }
 }
 
 pub struct Cursor<'chars> {
     chars: Chars<'chars>,
+    std_vers: StdVersion,
     #[cfg(debug_assertions)]
     cur_char: char,
 }
 
 impl<'chars> Cursor<'chars> {
-    pub fn new(code: &'chars str) -> Cursor<'chars> {
+    #[must_use]
+    pub fn new(code: &'chars str, std_vers: StdVersion) -> Cursor<'chars> {
         Cursor {
             chars: code.chars(),
+            std_vers,
             #[cfg(debug_assertions)]
             cur_char: '\0',
         }
@@ -88,6 +109,7 @@ impl<'chars> Cursor<'chars> {
         self.next_token_impl(ExpectHeader::Yes)
     }
 
+    #[must_use]
     fn peek_first(&self) -> Option<char> {
         self.chars.clone().next()
     }
@@ -116,6 +138,7 @@ impl<'chars> Cursor<'chars> {
         }
     }
 
+    #[must_use]
     fn len_from_end(&self) -> u32 {
         self.chars
             .as_str()
@@ -124,6 +147,7 @@ impl<'chars> Cursor<'chars> {
             .expect("Input too large to handle")
     }
 
+    #[must_use]
     fn make_token_builder(&self) -> TokenBuilder {
         TokenBuilder {
             start_len_from_end: self.len_from_end(),
@@ -136,7 +160,7 @@ impl<'chars> Cursor<'chars> {
         let tb = &mut token_builder;
 
         let kind = match self.next_char(tb)? {
-            c if c.is_whitespace() => self.eat_whitespace(c != '\n', tb),
+            c if c.is_whitespace() => self.eat_whitespace(c == '\n', tb),
 
             '/' => match self.peek_first() {
                 Some('/') => self.eat_line_comment(tb),
@@ -145,9 +169,19 @@ impl<'chars> Cursor<'chars> {
             },
 
             'L' => self.eat_lit_or_identifier(LitType::Wide, tb),
-            'U' => self.eat_lit_or_identifier(LitType::Utf32, tb),
-            'u' => self.eat_lit_or_identifier_u(tb),
-            'R' => self.eat_raw_str_or_identifier(LitType::Default, tb),
+            'U' if self.std_vers.is_since_c11()
+                || self.std_vers.is_since_cpp11() =>
+            {
+                self.eat_lit_or_identifier(LitType::Utf32, tb)
+            }
+            'u' if self.std_vers.is_since_c11()
+                || self.std_vers.is_since_cpp11() =>
+            {
+                self.eat_lit_or_identifier_u(tb)
+            }
+            'R' if self.std_vers.is_since_cpp11() => {
+                self.eat_raw_str_or_identifier(LitType::Default, tb)
+            }
 
             c if c.is_id_start() => self.eat_identifier(tb),
             c @ '0'..='9' => self.eat_numbers(c, tb),
@@ -159,7 +193,7 @@ impl<'chars> Cursor<'chars> {
                 self.eat_quoted_list(SysHeader, LitType::Default, tb)
             }
 
-            '"' => self.eat_quoted_list(Str, LitType::Default, tb),
+            '"' => self.eat_quoted_list(String, LitType::Default, tb),
             '\'' => self.eat_quoted_list(CharSeq, LitType::Default, tb),
 
             ';' => TK::SemiColon,
@@ -231,32 +265,31 @@ impl<'chars> Cursor<'chars> {
         debug_assert!(self.cur_char == '/' && self.peek_first() == Some('*'));
         self.next_char(tb); // Consume first star as part of opener
         while let Some(c) = self.next_char(tb) {
-            if c != '*' {
+            if c != '*' || self.peek_first() != Some('/') {
                 continue;
             }
-            if let Some('/') = self.peek_first() {
-                self.next_char(tb);
-                break;
-            }
+            self.next_char(tb);
+            return TK::BlockComment;
         }
+        tb.set_unterminated();
         TK::BlockComment
     }
 
     fn eat_whitespace(
         &mut self,
-        mut no_bare_newline: bool,
+        mut splits_lines: bool,
         tb: &mut TokenBuilder,
     ) -> TokenKind {
         debug_assert!(self.cur_char.is_whitespace());
         while let Some('\\') = self.eat_while(tb, |c| {
-            no_bare_newline = no_bare_newline && c != '\n';
+            splits_lines = splits_lines || c == '\n';
             c.is_whitespace()
         }) {
             if !self.try_eat_esc_newline(EatSlash::Yes, tb) {
                 break;
             }
         }
-        TK::Whitespace { no_bare_newline }
+        TK::Whitespace { splits_lines }
     }
 
     fn eat_identifier(&mut self, tb: &mut TokenBuilder) -> TokenKind {
@@ -320,8 +353,9 @@ impl<'chars> Cursor<'chars> {
         ));
         match self.peek_first() {
             None => TK::Identifier,
+            // TODO: gaurd based on stdversion
             Some('\'') => self.eat_quoted_list(CharSeq, prefix, tb),
-            Some('"') => self.eat_quoted_list(Str, prefix, tb),
+            Some('"') => self.eat_quoted_list(String, prefix, tb),
             Some('R') => self.eat_raw_string(prefix, tb),
             Some(_) => self.eat_identifier(tb),
         }
@@ -348,26 +382,26 @@ impl<'chars> Cursor<'chars> {
         debug_assert!(matches!(
             (quote_ty, lit_type, self.cur_char),
             (CharSeq, _, '\'')
-                | (Str, _, '"')
+                | (String, _, '"')
                 | (SysHeader, LitType::Default, '<')
                 | (Header, LitType::Default, '"')
         ));
         let mut has_esc = false;
-        while let Some(c) = self.next_char(tb) {
-            match c {
+        let unterminated = loop {
+            match self.next_char(tb) {
                 // Stop tokenizing if non-escaped newline is encountered.
                 // This is an unterminated string which is always an error. We
                 // are fine with consuming the new line since it will error
                 // later.
-                '\n' => break,
-                // Close quote if matches terminator
-                '"' if matches!(quote_ty, Str | Header) => break,
-                '>' if matches!(quote_ty, SysHeader) => break,
-                '\'' if matches!(quote_ty, CharSeq) => break,
-                '\\' => {
+                Some('\n') | None => break true,
+                // Close quote if character matches terminator
+                Some(c) if quote_ty.matches_terminator(c) => {
+                    break false;
+                }
+                Some('\\') => {
                     has_esc = true;
                     match self.peek_first() {
-                        None => {}
+                        None | Some('\\') => {}
                         Some(c) if c.is_whitespace() => {
                             self.try_eat_esc_newline(EatSlash::No, tb);
                         }
@@ -376,11 +410,14 @@ impl<'chars> Cursor<'chars> {
                         }
                     }
                 }
-                _ => {}
+                _ => continue,
             }
+        };
+        if unterminated {
+            tb.set_unterminated();
         }
         match quote_ty {
-            Str => TK::Str { lit_type, has_esc },
+            String => TK::Str { lit_type, has_esc },
             CharSeq => TK::CharSeq { lit_type, has_esc },
             SysHeader => TK::SystemHeader,
             Header => TK::Header,
@@ -425,8 +462,8 @@ impl<'chars> Cursor<'chars> {
         let prefix_start = self.len_from_end();
         let prefix_char = match self.next_char(tb) {
             Some('(') => return Ok(DCharSeq::empty()),
-            Some(c) if c.is_d_char() => c,
-            Some(c) => return Err(TK::BadRawStr(RawStrErr::NotDChar(c))),
+            Some(c) if c.is_d_char(self.std_vers) => c,
+            Some(_) => return Err(TK::BadRawStr(RawStrErr::NotDChar)),
             None => return Err(TK::BadRawStr(RawStrErr::UnterminatedInPrefix)),
         };
 
@@ -437,19 +474,14 @@ impl<'chars> Cursor<'chars> {
             return Err(TK::BadRawStr(RawStrErr::PrefixTooLong));
         }
 
-        let delim = DCharSeq {
-            d_char: prefix_char,
-            count: prefix_len_so_far as u8,
-        };
+        #[allow(clippy::cast_possible_truncation)]
+        let delim = DCharSeq::new(prefix_char, prefix_len_so_far as u8);
         match last_char {
             Some('(') => {
                 self.next_char(tb);
                 Ok(delim)
             }
-            Some(other) => Err(TK::BadRawStr(RawStrErr::MultipleChar {
-                first: prefix_char,
-                other,
-            })),
+            Some(_) => Err(TK::BadRawStr(RawStrErr::PrefixMultiChar)),
             None => Err(TK::BadRawStr(RawStrErr::UnterminatedInPrefix)),
         }
     }
@@ -479,8 +511,8 @@ impl<'chars> Cursor<'chars> {
         tb: &mut TokenBuilder,
     ) -> Option<TokenKind> {
         let start = self.len_from_end();
-        let expected = delim.count as u32;
-        match self.eat_while(tb, |c| c == delim.d_char) {
+        let expected = delim.count().into();
+        match self.eat_while(tb, |c| c == delim.d_char()) {
             Some('"') if start - self.len_from_end() != expected => None,
             Some('"') => {
                 self.next_char(tb);

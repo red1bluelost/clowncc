@@ -20,6 +20,7 @@ name = "clown_token"
 version = "0.0.0"
 dependencies = [
  "bitflags",
+ "clown_version",
  "expect-test",
  "unicode-ident",
 ]
