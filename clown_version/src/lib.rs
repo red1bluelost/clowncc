@@ -1,8 +1,10 @@
+#![no_std]
+
 mod common_macros;
 mod language;
 mod std_version;
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 #[cfg(test)]
 mod tests;
@@ -11,13 +13,7 @@ mod tests;
 #[derive(Debug)]
 pub struct FromStrError<T>(PhantomData<T>);
 
-impl<T> FromStrError<T> {
-    fn make() -> Self {
-        Self(Default::default())
-    }
-}
-
-language::implement!{
+language::implement! {
     [c, "c"],
     [cpp, "c++"],
 }
