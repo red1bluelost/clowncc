@@ -5,7 +5,7 @@ use crate::{CharInfo, DCharSeq, TokenKind};
 
 use std::str::Chars;
 
-use clown_version::StdVersion;
+use clowncc_version::StdVersion;
 
 type TK = TokenKind;
 
@@ -32,10 +32,10 @@ impl QuoteType {
     }
 }
 
-clown_macros::define_yes_no!{
+clowncc_macros::define_yes_no!{
     EatSlash
 }
-clown_macros::define_yes_no!{
+clowncc_macros::define_yes_no!{
     ExpectHeader
 }
 

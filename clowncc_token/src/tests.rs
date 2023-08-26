@@ -1,6 +1,6 @@
 use crate::{Cursor, DCharSeq, NumberBase, RawStrErr, Token, TokenKind};
 
-use clown_version::StdVersion;
+use clowncc_version::StdVersion;
 use expect_test::{expect, Expect};
 
 /// TODO: Move to support macro crate

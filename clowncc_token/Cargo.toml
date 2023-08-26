@@ -1,12 +1,12 @@
 [package]
-name = "clown_token"
+name = "clowncc_token"
 version = "0.0.0"
 edition = "2021"
 
 [dependencies]
 bitflags = "2.4.0"
-clown_macros = { path = "../clown_macros" }
-clown_version = { path = "../clown_version" }
+clowncc_macros = { path = "../clowncc_macros" }
+clowncc_version = { path = "../clowncc_version" }
 unicode-ident = "1.0.11"
 
 [dev-dependencies]

@@ -1,4 +1,4 @@
-use clown_version::StdVersion;
+use clowncc_version::StdVersion;
 
 pub trait CharInfo: Copy {
     fn is_id_start(self) -> bool;

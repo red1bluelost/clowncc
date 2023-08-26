@@ -1,4 +1,4 @@
-use clown_token::{Cursor, TokenKind};
+use clowncc_token::{Cursor, TokenKind};
 use std::io::Read;
 
 #[derive(Copy, Clone, Eq, PartialEq)]

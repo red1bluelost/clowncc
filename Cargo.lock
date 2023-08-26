@@ -9,29 +9,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
 
 [[package]]
-name = "clown_lex"
+name = "clowncc_lex"
 version = "0.1.0"
 dependencies = [
  "bitflags",
 ]
 
 [[package]]
-name = "clown_macros"
+name = "clowncc_macros"
 version = "0.1.0"
 
 [[package]]
-name = "clown_token"
+name = "clowncc_token"
 version = "0.0.0"
 dependencies = [
  "bitflags",
- "clown_macros",
- "clown_version",
+ "clowncc_macros",
+ "clowncc_version",
  "expect-test",
  "unicode-ident",
 ]
 
 [[package]]
-name = "clown_version"
+name = "clowncc_version"
 version = "0.1.0"
 dependencies = [
  "paste",

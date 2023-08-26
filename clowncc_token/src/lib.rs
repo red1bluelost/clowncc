@@ -1,6 +1,6 @@
 //! Low-level C and C++ tokenizer
 //!
-//! `clown_token` aims to provide simple lexer that can separate out tokens
+//! `clowncc_token` aims to provide simple lexer that can separate out tokens
 //! from source code in a minimal representation. A cursor [`Cursor`] can
 //! iterate over source code [`&str`] to generate small tokens [`Token`].
 //!
