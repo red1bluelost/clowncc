@@ -1,6 +1,4 @@
-use crate::{Language, StdVersion};
-
-use StdVersion::*;
+use crate::{Language, StdVersion, StdVersion::*};
 
 const C_VERSIONS: [StdVersion; 6] = [C89, C95, C99, C11, C17, C23];
 const CPP_VERSIONS: [StdVersion; 6] =

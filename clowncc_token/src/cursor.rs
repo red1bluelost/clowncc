@@ -3,9 +3,9 @@ use QuoteType::*;
 use crate::token::{LitType, NumberBase, RawStrErr, Token, TokenFlags};
 use crate::{CharInfo, DCharSeq, TokenKind};
 
-use std::str::Chars;
-
 use clowncc_version::StdVersion;
+
+use core::str::Chars;
 
 type TK = TokenKind;
 

@@ -6,7 +6,7 @@ use expect_test::{expect, Expect};
 /// TODO: Move to support macro crate
 macro_rules! static_assert_size_eq {
     ($ty:ty, $size:expr) => {
-        const _: [(); $size] = [(); ::std::mem::size_of::<$ty>()];
+        const _: [(); $size] = [(); ::core::mem::size_of::<$ty>()];
     };
 }
 
@@ -24,7 +24,7 @@ fn check_tokens_impl<'c>(
 ) {
     let mut cursor = Cursor::new(code, StdVersion::Cpp26);
     let mut length_acc = 0;
-    let tokens: String = std::iter::from_fn(move || tok_fn(&mut cursor))
+    let tokens: String = core::iter::from_fn(move || tok_fn(&mut cursor))
         .map(|t| {
             length_acc += t.length() as usize;
             t

@@ -1,5 +1,8 @@
 use clowncc_token::{Cursor, TokenKind};
+
+use std::alloc::{GlobalAlloc, System, Layout};
 use std::io::Read;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum ParseHeader {
@@ -27,6 +30,7 @@ fn main() {
         .parse()
         .expect("Unknown language");
 
+    unsafe { GLOBAL.disable() };
     let mut cursor = Cursor::new(&code, std_vers);
 
     let mut parse_header = ParseHeader::None;
@@ -38,7 +42,9 @@ fn main() {
     } {
         let len = token.length() as usize;
         let code_slice = &code[token_start..token_start + len];
+        unsafe { GLOBAL.enable() };
         println!("{:?} = (\"{}\")", token, code_slice);
+        unsafe { GLOBAL.disable() };
         token_start += len;
 
         match token.kind() {
@@ -62,6 +68,40 @@ fn main() {
             }
         }
     }
+    unsafe { GLOBAL.enable() };
     println!("remaining = (\"{}\")", &code[token_start..]);
     assert_eq!(token_start, code.len());
 }
+
+struct ToggleAlloc(AtomicBool);
+
+impl ToggleAlloc {
+    fn enable(&self) {
+        self.0.store(true, Ordering::Relaxed)
+    }
+
+    fn disable(&self) {
+        self.0.store(false, Ordering::Relaxed)
+    }
+}
+
+unsafe impl GlobalAlloc for ToggleAlloc {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if !self.0.load(Ordering::Relaxed) {
+            self.enable();
+            panic!("Allocator disabled");
+        }
+        System.alloc(layout)
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        if !self.0.load(Ordering::Relaxed) {
+            self.enable();
+            panic!("Allocator disabled");
+        }
+        System.dealloc(ptr, layout)
+    }
+}
+
+#[global_allocator]
+static mut GLOBAL: ToggleAlloc = ToggleAlloc(AtomicBool::new(true));
