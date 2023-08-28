@@ -1,6 +1,6 @@
 use clowncc_token::{Cursor, TokenKind};
 
-use std::alloc::{GlobalAlloc, System, Layout};
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::io::Read;
 use std::sync::atomic::{AtomicBool, Ordering};
 

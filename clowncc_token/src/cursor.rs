@@ -3,6 +3,7 @@ use QuoteType::*;
 use crate::token::{LitType, NumberBase, RawStrErr, Token, TokenFlags};
 use crate::{CharInfo, DCharSeq, TokenKind};
 
+use clowncc_macros::debug_assert;
 use clowncc_version::StdVersion;
 
 use core::str::Chars;
