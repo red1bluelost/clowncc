@@ -3,7 +3,6 @@ macro_rules! implement {
         crate::common_macros::define_info_enum!{
             Language: $([$id_snake, $name_str]),*,
         }
-    };
+    }
 }
-
 pub(super) use implement;

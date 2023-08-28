@@ -43,5 +43,4 @@ macro_rules! define_info_enum {
         }
     };
 }
-
 pub(crate) use define_info_enum;

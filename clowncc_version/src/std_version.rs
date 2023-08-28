@@ -1,3 +1,5 @@
+use crate::StdVersion;
+
 macro_rules! implement {
     ($([$lang:ident, $id_snake:ident, $name_str:expr]),* $(,)?) => {
         ::paste::paste! {
@@ -39,7 +41,13 @@ macro_rules! implement {
                 }
             }
         }
-    };
+    }
 }
-
 pub(super) use implement;
+
+impl StdVersion {
+    pub const C_DEFAULT_VERSION: StdVersion = StdVersion::C17;
+    pub const CPP_DEFAULT_VERSION: StdVersion = StdVersion::Cpp17;
+    pub const C_EARLIEST_VERSION: StdVersion = StdVersion::C89;
+    pub const CPP_EARLIEST_VERSION: StdVersion = StdVersion::Cpp11;
+}
