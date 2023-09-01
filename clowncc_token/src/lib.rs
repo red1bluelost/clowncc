@@ -10,7 +10,7 @@
 //! information.
 //!
 //! Delimited tokens (`BlockComment`, `SystemHeader`, `Header`, `Str`,
-//! `CharSeq`) may be unterminated and contain a flag that indicates this error.
+//! `CharSeq`) may be unterminated but contain a flag indicating this error.
 #![cfg_attr(not(test), no_std)]
 
 mod char_info;

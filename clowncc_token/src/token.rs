@@ -258,6 +258,12 @@ impl Token {
         self.flags.contains(TokenFlags::NEWLINE)
     }
 
+    /// Indicates if number token contains a separator
+    #[must_use]
+    pub const fn has_num_separator(&self) -> bool {
+        self.flags.contains(TokenFlags::NUM_SEPARATOR)
+    }
+
     /// Indicates if [`Token`] consumed a universal character.
     ///
     /// Will only occur inside a [`TokenKind::Identifier`]. [`TokenKind::Str`]
@@ -283,9 +289,11 @@ bitflags::bitflags! {
     pub(crate) struct TokenFlags: u8 {
         /// Indicates a new line was consumed within the token.
         const NEWLINE = (1 << 0);
+        /// Indicates a number contains at least one separator
+        const NUM_SEPARATOR = (1 << 1);
         /// Indicates a valid universal character was consumed within the token.
-        const UNIV_CHAR = (1 << 1);
+        const UNIV_CHAR = (1 << 2);
         /// Indicates if delimited token has a closing delimiter.
-        const UNTERMINATED = (1 << 2);
+        const UNTERMINATED = (1 << 3);
     }
 }

@@ -18,11 +18,12 @@ static_assert_size_eq!(TokenKind, 3);
 static_assert_size_eq!(Token, 8);
 
 fn check_tokens_impl<'c>(
+    sv: StdVersion,
     code: &'c str,
     expect: Expect,
     mut tok_fn: impl FnMut(&mut Cursor<'c>) -> Option<Token>,
 ) {
-    let mut cursor = Cursor::new(code, StdVersion::Cpp26);
+    let mut cursor = Cursor::new(code, sv);
     let mut length_acc = 0;
     let tokens: String = core::iter::from_fn(move || tok_fn(&mut cursor))
         .map(|t| {
@@ -35,17 +36,18 @@ fn check_tokens_impl<'c>(
     assert_eq!(code.len(), length_acc);
 }
 
-fn check_basic_tokens(code: &str, expect: Expect) {
-    check_tokens_impl(code, expect, Cursor::next_token);
+fn check_basic_tokens(sv: StdVersion, code: &str, expect: Expect) {
+    check_tokens_impl(sv, code, expect, Cursor::next_token);
 }
 
-fn check_header_tokens(code: &str, expect: Expect) {
-    check_tokens_impl(code, expect, Cursor::next_token_header);
+fn check_header_tokens(sv: StdVersion, code: &str, expect: Expect) {
+    check_tokens_impl(sv, code, expect, Cursor::next_token_header);
 }
 
 #[test]
 fn hello_world_test() {
     check_basic_tokens(
+        StdVersion::Cpp26,
         r#"
 int main() {
     puts("hello world")
@@ -75,6 +77,7 @@ int main() {
 #[test]
 fn spliced_universal_char() {
     check_basic_tokens(
+        StdVersion::Cpp26,
         r#"
 int \\
 \
@@ -104,6 +107,7 @@ u\
 #[test]
 fn spliced_line_comment() {
     check_basic_tokens(
+        StdVersion::Cpp26,
         "//   \\       \n\\\nint main() {}",
         expect![[r#"
             Token { kind: LineComment, length: 29, flags: TokenFlags(NEWLINE) }
@@ -114,6 +118,7 @@ fn spliced_line_comment() {
 #[test]
 fn unterminated_string() {
     check_basic_tokens(
+        StdVersion::Cpp26,
         r#""hello
 "gary"#,
         expect![[r#"
@@ -126,6 +131,7 @@ fn unterminated_string() {
 #[test]
 fn string_double_backslash() {
     check_basic_tokens(
+        StdVersion::Cpp26,
         "const char *ignore = \"\\\\\nf\";",
         expect![[r#"
             Token { kind: Identifier, length: 5, flags: TokenFlags(0x0) }
@@ -144,8 +150,51 @@ fn string_double_backslash() {
 }
 
 #[test]
+fn number_with_separators_enabled() {
+    check_basic_tokens(
+        StdVersion::Cpp14,
+        r"int i = 0xa'b'c'd89f'3llu;",
+        expect![[r#"
+            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Equal, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Hexidecimal }, length: 14, flags: TokenFlags(NUM_SEPARATOR) }
+            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: SemiColon, length: 1, flags: TokenFlags(0x0) }
+        "#]],
+    );
+}
+
+#[test]
+fn number_with_separators_disabled() {
+    check_basic_tokens(
+        StdVersion::Cpp11,
+        r"int i = 0xa'b'c'd89f'3llu;",
+        expect![[r#"
+            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Equal, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Hexidecimal }, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: CharSeq { lit_type: Default, has_esc: false }, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Identifier, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: CharSeq { lit_type: Default, has_esc: false }, length: 6, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Decimal }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: SemiColon, length: 1, flags: TokenFlags(0x0) }
+        "#]],
+    );
+}
+
+#[test]
 fn system_header() {
     check_header_tokens(
+        StdVersion::Cpp26,
         " <stdio.h> // something\n",
         expect![[r#"
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
@@ -160,6 +209,7 @@ fn system_header() {
 #[test]
 fn local_header() {
     check_header_tokens(
+        StdVersion::Cpp26,
         " /*hi*/ \"llvm/ADT/SmallVector.h\" //\n",
         expect![[r#"
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
@@ -176,6 +226,7 @@ fn local_header() {
 #[test]
 fn spliced_system_header() {
     check_header_tokens(
+        StdVersion::Cpp26,
         " <stdl\\\nib.h\\\n>",
         expect![[r#"
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }

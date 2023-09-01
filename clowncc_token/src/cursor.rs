@@ -54,7 +54,10 @@ struct TokenBuilder {
 impl TokenBuilder {
     fn set_newline(&mut self) {
         self.flags |= TokenFlags::NEWLINE;
-        let _ = true < false;
+    }
+
+    fn set_num_separator(&mut self) {
+        self.flags |= TokenFlags::NUM_SEPARATOR;
     }
 
     fn set_univ_char(&mut self) {
@@ -103,6 +106,13 @@ impl<'chars> Cursor<'chars> {
     #[must_use]
     fn peek_first(&self) -> Option<char> {
         self.chars.clone().next()
+    }
+
+    #[must_use]
+    fn peek_second(&self) -> Option<char> {
+        let mut iter = self.chars.clone();
+        iter.next()?;
+        iter.next()
     }
 
     fn next_char(&mut self, tb: &mut TokenBuilder) -> Option<char> {
@@ -306,13 +316,23 @@ impl<'chars> Cursor<'chars> {
             NumberBase::Decimal
         };
 
+        let match_num = |c| base.matches(c);
+
         if base != NumberBase::Decimal
-            && self.peek_first().map_or(true, |c| base.matches(c))
+            && !self.peek_first().map_or(false, match_num)
         {
             return TK::StrayNumPrefix { base };
         }
 
-        self.eat_while(tb, |c| base.matches(c));
+        while let Some('\'') = self.eat_while(tb, match_num) {
+            if !(self.std_vers.is_since_c23() || self.std_vers.is_since_cpp14())
+                || !self.peek_second().map_or(false, match_num)
+            {
+                break;
+            }
+            tb.set_num_separator();
+            self.next_char(tb); // eat '
+        }
 
         TK::Number { base }
     }
@@ -321,9 +341,11 @@ impl<'chars> Cursor<'chars> {
         debug_assert!(self.cur_char == '0');
         let base = match self.peek_first() {
             Some('b' | 'B') => NumberBase::Binary,
-            Some('0') => NumberBase::Octal,
             Some('x' | 'X') => NumberBase::Hexidecimal,
-            // Return here to not eat the non-number character that follows
+            // Return here to not eat the non-prefix character that follows
+            Some(c) if NumberBase::Octal.matches(c) => {
+                return NumberBase::Octal
+            }
             Some(_) | None => return NumberBase::Decimal,
         };
         self.next_char(tb);
