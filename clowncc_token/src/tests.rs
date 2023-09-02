@@ -55,15 +55,15 @@ int main() {
 "#,
         expect![[r#"
             Token { kind: Whitespace { splits_lines: true }, length: 1, flags: TokenFlags(NEWLINE) }
-            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 4, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 4, flags: TokenFlags(0x0) }
             Token { kind: OpenParen, length: 1, flags: TokenFlags(0x0) }
             Token { kind: CloseParen, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: OpenBrace, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: true }, length: 5, flags: TokenFlags(NEWLINE) }
-            Token { kind: Identifier, length: 4, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 4, flags: TokenFlags(0x0) }
             Token { kind: OpenParen, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Str { lit_type: Default, has_esc: false }, length: 13, flags: TokenFlags(0x0) }
             Token { kind: CloseParen, length: 1, flags: TokenFlags(0x0) }
@@ -91,13 +91,13 @@ u\
 "#,
         expect![[r#"
             Token { kind: Whitespace { splits_lines: true }, length: 1, flags: TokenFlags(NEWLINE) }
-            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 22, flags: TokenFlags(NEWLINE | UNIV_CHAR) }
+            Token { kind: Identifier { has_univ_char: true }, length: 22, flags: TokenFlags(NEWLINE) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Equal, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Number { base: Decimal }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Decimal, has_sep: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: SemiColon, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: true }, length: 1, flags: TokenFlags(NEWLINE) }
         "#]],
@@ -134,12 +134,12 @@ fn string_double_backslash() {
         StdVersion::Cpp26,
         "const char *ignore = \"\\\\\nf\";",
         expect![[r#"
-            Token { kind: Identifier, length: 5, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 5, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 4, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 4, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Star, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 6, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 6, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Equal, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
@@ -150,19 +150,30 @@ fn string_double_backslash() {
 }
 
 #[test]
+fn ident_lookin_like_raw_str() {
+    check_basic_tokens(
+        StdVersion::Cpp26,
+        "u8Rgary",
+        expect![[r#"
+            Token { kind: Identifier { has_univ_char: false }, length: 7, flags: TokenFlags(0x0) }
+        "#]],
+    )
+}
+
+#[test]
 fn number_with_separators_enabled() {
     check_basic_tokens(
         StdVersion::Cpp14,
         r"int i = 0xa'b'c'd89f'3llu;",
         expect![[r#"
-            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Equal, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Number { base: Hexidecimal }, length: 14, flags: TokenFlags(NUM_SEPARATOR) }
-            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Hexidecimal, has_sep: true }, length: 14, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: SemiColon, length: 1, flags: TokenFlags(0x0) }
         "#]],
     );
@@ -174,18 +185,18 @@ fn number_with_separators_disabled() {
         StdVersion::Cpp11,
         r"int i = 0xa'b'c'd89f'3llu;",
         expect![[r#"
-            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Equal, length: 1, flags: TokenFlags(0x0) }
             Token { kind: Whitespace { splits_lines: false }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Number { base: Hexidecimal }, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Hexidecimal, has_sep: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: CharSeq { lit_type: Default, has_esc: false }, length: 3, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 1, flags: TokenFlags(0x0) }
             Token { kind: CharSeq { lit_type: Default, has_esc: false }, length: 6, flags: TokenFlags(0x0) }
-            Token { kind: Number { base: Decimal }, length: 1, flags: TokenFlags(0x0) }
-            Token { kind: Identifier, length: 3, flags: TokenFlags(0x0) }
+            Token { kind: Number { base: Decimal, has_sep: false }, length: 1, flags: TokenFlags(0x0) }
+            Token { kind: Identifier { has_univ_char: false }, length: 3, flags: TokenFlags(0x0) }
             Token { kind: SemiColon, length: 1, flags: TokenFlags(0x0) }
         "#]],
     );

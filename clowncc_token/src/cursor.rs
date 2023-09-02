@@ -44,6 +44,12 @@ clowncc_macros::define_yes_no! {
     /// `"` or angle brackets `<` as headers or regular tokens.
     ExpectHeader;
 }
+clowncc_macros::define_yes_no! {
+    /// Parsing an identifier may perform a few steps before entering the
+    /// dedicated function. If a universal char is consumed, it must be
+    /// communicated to the function as it consumes the rest of the identifier.
+    HasUnivChar;
+}
 
 #[derive(Clone)]
 struct TokenBuilder {
@@ -54,14 +60,6 @@ struct TokenBuilder {
 impl TokenBuilder {
     fn set_newline(&mut self) {
         self.flags |= TokenFlags::NEWLINE;
-    }
-
-    fn set_num_separator(&mut self) {
-        self.flags |= TokenFlags::NUM_SEPARATOR;
-    }
-
-    fn set_univ_char(&mut self) {
-        self.flags |= TokenFlags::UNIV_CHAR;
     }
 
     fn set_unterminated(&mut self) {
@@ -184,7 +182,7 @@ impl<'chars> Cursor<'chars> {
                 self.eat_raw_str_or_identifier(LitType::Default, tb)
             }
 
-            c if c.is_id_start() => self.eat_identifier(tb),
+            c if c.is_id_start() => self.eat_identifier(HasUnivChar::No, tb),
             c @ '0'..='9' => self.eat_numbers(c, tb),
 
             '"' if header.is_yes() => {
@@ -230,7 +228,7 @@ impl<'chars> Cursor<'chars> {
                 Some('u' | 'U' | '\\')
                     if self.try_eat_universal_char(EatSlash::No, tb) =>
                 {
-                    self.eat_identifier(tb)
+                    self.eat_identifier(HasUnivChar::Yes, tb)
                 }
                 Some(c) if c.is_whitespace() => {
                     debug_assert!(!self.try_eat_esc_newline(EatSlash::No, tb));
@@ -293,13 +291,19 @@ impl<'chars> Cursor<'chars> {
         TK::Whitespace { splits_lines }
     }
 
-    fn eat_identifier(&mut self, tb: &mut TokenBuilder) -> TokenKind {
+    fn eat_identifier(
+        &mut self,
+        has_univ_char: HasUnivChar,
+        tb: &mut TokenBuilder,
+    ) -> TokenKind {
+        let mut has_univ_char = has_univ_char.is_yes();
         while let Some('\\') = self.eat_while(tb, char::is_id_continue) {
             if !self.try_eat_universal_char(EatSlash::Yes, tb) {
                 break;
             }
+            has_univ_char = true;
         }
-        TK::Identifier
+        TK::Identifier { has_univ_char }
     }
 
     fn eat_numbers(
@@ -324,17 +328,18 @@ impl<'chars> Cursor<'chars> {
             return TK::StrayNumPrefix { base };
         }
 
+        let mut has_sep = false;
         while let Some('\'') = self.eat_while(tb, match_num) {
             if !(self.std_vers.is_since_c23() || self.std_vers.is_since_cpp14())
                 || !self.peek_second().map_or(false, match_num)
             {
                 break;
             }
-            tb.set_num_separator();
+            has_sep = true;
             self.next_char(tb); // eat '
         }
 
-        TK::Number { base }
+        TK::Number { base, has_sep }
     }
 
     fn eat_number_base(&mut self, tb: &mut TokenBuilder) -> NumberBase {
@@ -365,19 +370,26 @@ impl<'chars> Cursor<'chars> {
                 | ('U', LitType::Utf32)
         ));
         match self.peek_first() {
-            None => TK::Identifier,
+            None => TK::Identifier {
+                has_univ_char: false,
+            },
             // TODO: gaurd based on stdversion
             Some('\'') => self.eat_quoted_list(CharSeq, prefix, tb),
             Some('"') => self.eat_quoted_list(String, prefix, tb),
-            Some('R') => self.eat_raw_string(prefix, tb),
-            Some(_) => self.eat_identifier(tb),
+            Some('R') => {
+                self.next_char(tb);
+                self.eat_raw_str_or_identifier(prefix, tb)
+            }
+            Some(_) => self.eat_identifier(HasUnivChar::No, tb),
         }
     }
 
     fn eat_lit_or_identifier_u(&mut self, tb: &mut TokenBuilder) -> TokenKind {
         debug_assert!(self.cur_char == 'u');
         match self.peek_first() {
-            None => TK::Identifier,
+            None => TK::Identifier {
+                has_univ_char: false,
+            },
             Some('8') => {
                 self.next_char(tb);
                 self.eat_lit_or_identifier(LitType::Utf8, tb)
@@ -444,9 +456,11 @@ impl<'chars> Cursor<'chars> {
     ) -> TokenKind {
         debug_assert!(self.cur_char == 'R');
         match self.peek_first() {
-            None => TK::Identifier,
+            None => TK::Identifier {
+                has_univ_char: false,
+            },
             Some('"') => self.eat_raw_string(prefix, tb),
-            Some(_) => self.eat_identifier(tb),
+            Some(_) => self.eat_identifier(HasUnivChar::No, tb),
         }
     }
 
@@ -610,9 +624,7 @@ impl<'chars> Cursor<'chars> {
         }
 
         let result = internal(self, tb);
-        if result {
-            tb.set_univ_char();
-        } else {
+        if !result {
             *tb = tb_dup;
             self.chars = chars_dup;
         }

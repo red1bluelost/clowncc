@@ -12,9 +12,9 @@ pub enum TokenKind {
     LineComment,
     BlockComment,
 
-    Identifier,
+    Identifier { has_univ_char: bool },
     Whitespace { splits_lines: bool },
-    Number { base: NumberBase },
+    Number { base: NumberBase, has_sep: bool },
 
     SystemHeader,
     Header,
@@ -72,7 +72,7 @@ impl TokenKind {
                 | StrayNumPrefix { .. }
                 | LineComment
                 | BlockComment
-                | Identifier
+                | Identifier { .. }
                 | Whitespace { .. }
                 | Number { .. }
                 | SystemHeader
@@ -231,11 +231,8 @@ impl Token {
             flags,
         };
         debug_assert!(!kind.is_single_char() || length == 1);
-        debug_assert!(kind.is_multi_char() || !token.has_new_line());
-        debug_assert!(
-            matches!(kind, Identifier) || !token.has_universal_char()
-        );
-        debug_assert!(kind.is_delimited() || !token.is_unterminated());
+        debug_assert!(kind.is_multi_char() || !flags.has_new_line());
+        debug_assert!(kind.is_delimited() || !flags.is_unterminated());
         token
     }
 
@@ -250,50 +247,37 @@ impl Token {
         self.kind
     }
 
+    #[must_use]
+    pub const fn flags(&self) -> TokenFlags {
+        self.flags
+    }
     // Flag Queries:
+}
 
+bitflags::bitflags! {
+    /// Packed booleans for [`Token`] to indicate edge scenarios that may need
+    /// processing. These flags should occur in multiple kinds of tokens,
+    /// otherwise it is best to encode within the [`TokenKind`] variant.
+    #[derive(Copy, Clone, Debug)]
+    pub struct TokenFlags: u8 {
+        /// Indicates a new line was consumed within the token.
+        const NEWLINE = (1 << 0);
+        /// Indicates if delimited token has a closing delimiter.
+        const UNTERMINATED = (1 << 1);
+    }
+}
+
+impl TokenFlags {
     /// Indicates if token contains a new line, escaped and unescaped
     #[must_use]
-    pub const fn has_new_line(&self) -> bool {
-        self.flags.contains(TokenFlags::NEWLINE)
-    }
-
-    /// Indicates if number token contains a separator
-    #[must_use]
-    pub const fn has_num_separator(&self) -> bool {
-        self.flags.contains(TokenFlags::NUM_SEPARATOR)
-    }
-
-    /// Indicates if [`Token`] consumed a universal character.
-    ///
-    /// Will only occur inside a [`TokenKind::Identifier`]. [`TokenKind::Str`]
-    /// and [`TokenKind::CharSeq`] may contain universal characters but the
-    /// lexer treats them as any other escape.
-    #[must_use]
-    pub const fn has_universal_char(&self) -> bool {
-        self.flags.contains(TokenFlags::UNIV_CHAR)
+    pub const fn has_new_line(self) -> bool {
+        self.contains(Self::NEWLINE)
     }
 
     /// Indicates if token consumed is not terminated by a closing delimiter.
     /// Will only occur for delimited token kinds.
     #[must_use]
-    pub const fn is_unterminated(&self) -> bool {
-        self.flags.contains(TokenFlags::UNTERMINATED)
-    }
-}
-
-bitflags::bitflags! {
-    /// Packed booleans for [`Token`] to indicate edge scenarios that may need
-    /// processing.
-    #[derive(Copy, Clone, Debug)]
-    pub(crate) struct TokenFlags: u8 {
-        /// Indicates a new line was consumed within the token.
-        const NEWLINE = (1 << 0);
-        /// Indicates a number contains at least one separator
-        const NUM_SEPARATOR = (1 << 1);
-        /// Indicates a valid universal character was consumed within the token.
-        const UNIV_CHAR = (1 << 2);
-        /// Indicates if delimited token has a closing delimiter.
-        const UNTERMINATED = (1 << 3);
+    pub const fn is_unterminated(self) -> bool {
+        self.contains(Self::UNTERMINATED)
     }
 }

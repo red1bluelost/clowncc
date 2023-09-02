@@ -55,11 +55,12 @@ fn main() {
             TokenKind::Pound if parse_header == ParseHeader::None => {
                 parse_header = ParseHeader::Pound;
             }
-            TokenKind::Identifier
-                if matches!(
-                    (parse_header, code_slice),
-                    (ParseHeader::Pound, "include")
-                ) =>
+            TokenKind::Identifier {
+                has_univ_char: false,
+            } if matches!(
+                (parse_header, code_slice),
+                (ParseHeader::Pound, "include")
+            ) =>
             {
                 parse_header = ParseHeader::Include;
             }
