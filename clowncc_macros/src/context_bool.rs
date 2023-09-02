@@ -61,5 +61,5 @@ macro_rules! define_yes_no {
                 if v { $name::Yes } else { $name::No }
             }
         }
-    };
+    }
 }

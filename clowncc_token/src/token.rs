@@ -251,7 +251,6 @@ impl Token {
     pub const fn flags(&self) -> TokenFlags {
         self.flags
     }
-    // Flag Queries:
 }
 
 bitflags::bitflags! {
