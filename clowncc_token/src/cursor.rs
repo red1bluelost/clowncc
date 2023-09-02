@@ -1,4 +1,5 @@
-use QuoteType::*;
+use QuoteType as QT;
+use TokenKind as TK;
 
 use crate::token::{LitType, NumberBase, RawStrErr, Token, TokenFlags};
 use crate::{CharInfo, DCharSeq, TokenKind};
@@ -7,8 +8,6 @@ use clowncc_macros::debug_assert;
 use clowncc_version::StdVersion;
 
 use core::str::Chars;
-
-type TK = TokenKind;
 
 /// Representing a single character delimited string
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -28,7 +27,9 @@ impl QuoteType {
     const fn matches_terminator(self, c: char) -> bool {
         matches!(
             (self, c),
-            (SysHeader, '>') | (String | Header, '"') | (CharSeq, '\'')
+            (QT::SysHeader, '>')
+                | (QT::String | QT::Header, '"')
+                | (QT::CharSeq, '\'')
         )
     }
 }
@@ -186,14 +187,14 @@ impl<'chars> Cursor<'chars> {
             c @ '0'..='9' => self.eat_numbers(c, tb),
 
             '"' if header.is_yes() => {
-                self.eat_quoted_list(Header, LitType::Default, tb)
+                self.eat_quoted_list(QT::Header, LitType::Default, tb)
             }
             '<' if header.is_yes() => {
-                self.eat_quoted_list(SysHeader, LitType::Default, tb)
+                self.eat_quoted_list(QT::SysHeader, LitType::Default, tb)
             }
 
-            '"' => self.eat_quoted_list(String, LitType::Default, tb),
-            '\'' => self.eat_quoted_list(CharSeq, LitType::Default, tb),
+            '"' => self.eat_quoted_list(QT::String, LitType::Default, tb),
+            '\'' => self.eat_quoted_list(QT::CharSeq, LitType::Default, tb),
 
             ';' => TK::SemiColon,
             '#' => TK::Pound,
@@ -374,8 +375,8 @@ impl<'chars> Cursor<'chars> {
                 has_univ_char: false,
             },
             // TODO: gaurd based on stdversion
-            Some('\'') => self.eat_quoted_list(CharSeq, prefix, tb),
-            Some('"') => self.eat_quoted_list(String, prefix, tb),
+            Some('\'') => self.eat_quoted_list(QT::CharSeq, prefix, tb),
+            Some('"') => self.eat_quoted_list(QT::String, prefix, tb),
             Some('R') => {
                 self.next_char(tb);
                 self.eat_raw_str_or_identifier(prefix, tb)
@@ -406,10 +407,10 @@ impl<'chars> Cursor<'chars> {
     ) -> TokenKind {
         debug_assert!(matches!(
             (quote_ty, lit_type, self.cur_char),
-            (CharSeq, _, '\'')
-                | (String, _, '"')
-                | (SysHeader, LitType::Default, '<')
-                | (Header, LitType::Default, '"')
+            (QT::CharSeq, _, '\'')
+                | (QT::String, _, '"')
+                | (QT::SysHeader, LitType::Default, '<')
+                | (QT::Header, LitType::Default, '"')
         ));
         let mut has_esc = false;
         let unterminated = loop {
@@ -442,10 +443,10 @@ impl<'chars> Cursor<'chars> {
             tb.set_unterminated();
         }
         match quote_ty {
-            String => TK::Str { lit_type, has_esc },
-            CharSeq => TK::CharSeq { lit_type, has_esc },
-            SysHeader => TK::SystemHeader,
-            Header => TK::Header,
+            QT::String => TK::Str { lit_type, has_esc },
+            QT::CharSeq => TK::CharSeq { lit_type, has_esc },
+            QT::SysHeader => TK::SystemHeader,
+            QT::Header => TK::Header,
         }
     }
 

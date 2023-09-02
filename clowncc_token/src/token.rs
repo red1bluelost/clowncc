@@ -1,4 +1,4 @@
-use TokenKind::*;
+use TokenKind as TK;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TokenKind {
@@ -58,7 +58,10 @@ impl TokenKind {
     pub const fn is_error(self) -> bool {
         matches!(
             self,
-            Unknown | BadRawStr(_) | StrayBackSlash | StrayNumPrefix { .. }
+            TK::Unknown
+                | TK::BadRawStr(_)
+                | TK::StrayBackSlash
+                | TK::StrayNumPrefix { .. }
         )
     }
 
@@ -66,20 +69,20 @@ impl TokenKind {
     pub const fn is_multi_char(self) -> bool {
         matches!(
             self,
-            Unknown
-                | BadRawStr(_)
-                | StrayBackSlash
-                | StrayNumPrefix { .. }
-                | LineComment
-                | BlockComment
-                | Identifier { .. }
-                | Whitespace { .. }
-                | Number { .. }
-                | SystemHeader
-                | Header
-                | CharSeq { .. }
-                | Str { .. }
-                | RawStr { .. }
+            TK::Unknown
+                | TK::BadRawStr(_)
+                | TK::StrayBackSlash
+                | TK::StrayNumPrefix { .. }
+                | TK::LineComment
+                | TK::BlockComment
+                | TK::Identifier { .. }
+                | TK::Whitespace { .. }
+                | TK::Number { .. }
+                | TK::SystemHeader
+                | TK::Header
+                | TK::CharSeq { .. }
+                | TK::Str { .. }
+                | TK::RawStr { .. }
         )
     }
 
@@ -87,32 +90,32 @@ impl TokenKind {
     pub const fn is_single_char(self) -> bool {
         matches!(
             self,
-            StrayBackSlash
-                | SemiColon
-                | Pound
-                | Ampersand
-                | Pipe
-                | Dot
-                | Comma
-                | QuestionMark
-                | Colon
-                | Equal
-                | Plus
-                | Minus
-                | Star
-                | Slash
-                | Percent
-                | Exclamation
-                | Tilde
-                | Caret
-                | GreaterThan
-                | LessThan
-                | OpenParen
-                | CloseParen
-                | OpenBrace
-                | CloseBrace
-                | OpenBracket
-                | CloseBracket
+            TK::StrayBackSlash
+                | TK::SemiColon
+                | TK::Pound
+                | TK::Ampersand
+                | TK::Pipe
+                | TK::Dot
+                | TK::Comma
+                | TK::QuestionMark
+                | TK::Colon
+                | TK::Equal
+                | TK::Plus
+                | TK::Minus
+                | TK::Star
+                | TK::Slash
+                | TK::Percent
+                | TK::Exclamation
+                | TK::Tilde
+                | TK::Caret
+                | TK::GreaterThan
+                | TK::LessThan
+                | TK::OpenParen
+                | TK::CloseParen
+                | TK::OpenBrace
+                | TK::CloseBrace
+                | TK::OpenBracket
+                | TK::CloseBracket
         )
     }
 
@@ -121,12 +124,12 @@ impl TokenKind {
     pub const fn is_delimited(self) -> bool {
         let result = matches!(
             self,
-            BlockComment
-                | SystemHeader
-                | Header
-                | CharSeq { .. }
-                | Str { .. }
-                | RawStr { .. }
+            TK::BlockComment
+                | TK::SystemHeader
+                | TK::Header
+                | TK::CharSeq { .. }
+                | TK::Str { .. }
+                | TK::RawStr { .. }
         );
         debug_assert!(self.is_multi_char() || !result);
         result
@@ -143,13 +146,12 @@ pub enum NumberBase {
 
 impl NumberBase {
     pub(crate) const fn matches(self, c: char) -> bool {
+        use NumberBase as NB;
         match self {
-            NumberBase::Binary => matches!(c, '0' | '1'),
-            NumberBase::Octal => matches!(c, '0'..='7'),
-            NumberBase::Decimal => c.is_ascii_digit(),
-            NumberBase::Hexidecimal => {
-                matches!(c, '0'..='9' | 'a'..='f' | 'A'..='F')
-            }
+            NB::Binary => matches!(c, '0' | '1'),
+            NB::Octal => matches!(c, '0'..='7'),
+            NB::Decimal => c.is_ascii_digit(),
+            NB::Hexidecimal => matches!(c, '0'..='9' | 'a'..='f' | 'A'..='F'),
         }
     }
 }
