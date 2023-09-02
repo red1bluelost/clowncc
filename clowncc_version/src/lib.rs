@@ -4,6 +4,8 @@ mod common_macros;
 mod language;
 mod std_version;
 
+use strum_macros::EnumIter;
+
 use core::marker::PhantomData;
 
 #[cfg(test)]
@@ -34,4 +36,12 @@ std_version::implement! {
     [Cpp, cpp20, "c++20"],
     [Cpp, cpp23, "c++23"],
     [Cpp, cpp26, "c++26"],
+}
+
+pub trait StdVersionSupported {
+    fn is_in_std_version(&self, sv: StdVersion) -> bool;
+}
+
+pub trait LanguageSupported {
+    fn is_in_language(&self, lang: Language) -> bool;
 }

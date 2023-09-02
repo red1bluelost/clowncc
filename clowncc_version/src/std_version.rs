@@ -19,14 +19,12 @@ macro_rules! implement {
                 $(
                     #[must_use]
                     pub fn [<is_since_ $id_snake>](self) -> bool {
-                        Language::$lang == self.as_language()
-                        && Self::[<$id_snake:camel>] <= self
+                        self.is_since(Self::[<$id_snake:camel>])
                     }
 
                     #[must_use]
                     pub fn [<is_before_ $id_snake>](self) -> bool {
-                        Language::$lang == self.as_language()
-                        && Self::[<$id_snake:camel>] > self
+                        self.is_before(Self::[<$id_snake:camel>])
                     }
                 )*
             }
@@ -50,4 +48,14 @@ impl StdVersion {
     pub const CPP_DEFAULT_VERSION: StdVersion = StdVersion::Cpp17;
     pub const C_EARLIEST_VERSION: StdVersion = StdVersion::C89;
     pub const CPP_EARLIEST_VERSION: StdVersion = StdVersion::Cpp11;
+
+    #[must_use]
+    pub fn is_since(self, since: StdVersion) -> bool {
+        since.as_language() == self.as_language() && since <= self
+    }
+
+    #[must_use]
+    pub fn is_before(self, since: StdVersion) -> bool {
+        since.as_language() == self.as_language() && since > self
+    }
 }

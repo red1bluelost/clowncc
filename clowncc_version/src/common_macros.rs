@@ -7,7 +7,7 @@ macro_rules! define_info_enum {
     ) => {
         ::paste::paste! {
             $(#[$attrs])*
-            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+            #[derive(Clone, Copy, Debug, Eq, PartialEq, EnumIter)]
             pub enum $enum_id {
                 $([<$id_snake:camel>]),*
             }
