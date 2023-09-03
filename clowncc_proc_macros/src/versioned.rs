@@ -1,25 +1,11 @@
-use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{Error, Meta, MetaList, Token};
-use synstructure::{Structure, VariantInfo};
+mod var_attribute;
 
-struct VarAttribute<'var, 'tok> {
-    var_info: &'var VariantInfo<'tok>,
-    langs: Vec<Ident>,
-    sinces: Vec<Ident>,
-    untils: Vec<Ident>,
-}
+use var_attribute::{collect_attribute, VarAttribute};
 
-impl VarAttribute<'_, '_> {
-    fn is_universal(&self) -> bool {
-        [&self.langs, &self.sinces, &self.untils]
-            .iter()
-            .cloned()
-            .all(Vec::is_empty)
-    }
-}
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::Error;
+use synstructure::Structure;
 
 fn collect_errors(errors: Vec<Error>) -> syn::Result<()> {
     errors
@@ -29,150 +15,6 @@ fn collect_errors(errors: Vec<Error>) -> syn::Result<()> {
             f
         })
         .map_or(Ok(()), Err)
-}
-
-fn collect_attr_from_tokens(
-    tokens: TokenStream,
-    langs: &mut Vec<Ident>,
-    sinces: &mut Vec<Ident>,
-    untils: &mut Vec<Ident>,
-) -> syn::Result<()> {
-    #[derive(Clone)]
-    enum Item {
-        Universal(Ident),
-        Lang(Ident, Ident),
-        Since(Ident, Ident),
-        Until(Ident, Ident),
-    }
-    impl ToTokens for Item {
-        fn to_tokens(&self, tokens: &mut TokenStream) {
-            use Item::*;
-            match self.clone() {
-                Universal(i) => tokens.append(i),
-                Lang(k, v) | Since(k, v) | Until(k, v) => {
-                    tokens.append_all([k, v])
-                }
-            }
-        }
-    }
-    struct Items(Punctuated<Item, Token![,]>);
-    impl Parse for Items {
-        fn parse(input: ParseStream) -> syn::Result<Self> {
-            Ok(Self(Punctuated::parse_terminated_with(input, |input| {
-                use Item::*;
-                let key: Ident = input.parse()?;
-                let key_str = key.to_string();
-                let ctor = match key_str.as_str() {
-                    "universal" => return Ok(Universal(key)),
-                    "lang" => Lang,
-                    "since" => Since,
-                    "until" => Until,
-                    "before" => {
-                        return Err(Error::new_spanned(
-                            key,
-                            "unknown key, perhaps meant `until`, \
-                            only supports [universal, lang, since, until]",
-                        ))
-                    }
-                    _ => {
-                        return Err(Error::new_spanned(
-                            key,
-                            "unknown key, only supports \
-                            [universal, lang, since, until]",
-                        ))
-                    }
-                };
-                Ok(ctor(key, input.parse()?))
-            })?))
-        }
-    }
-
-    let item_list = syn::parse2::<Items>(tokens)?.0;
-    if item_list.is_empty() {
-        return Err(Error::new_spanned(
-            item_list,
-            "expected key values in the attribute list",
-        ));
-    }
-
-    let mut is_first = true;
-    let mut is_universal = false;
-    for item in item_list {
-        use Item::*;
-        match item {
-            Universal(_) if is_first => is_universal = true,
-            Lang(_, l) if !is_universal => langs.push(l),
-            Since(_, s) if !is_universal => sinces.push(s),
-            Until(_, u) if !is_universal => untils.push(u),
-            Universal(i) => {
-                return Err(Error::new_spanned(
-                    i,
-                    "unexpected universal, universal must be alone",
-                ));
-            }
-            Lang(k, _) | Since(k, _) | Until(k, _) => {
-                return Err(Error::new_spanned(
-                    k,
-                    "unexpected key, either remove `universal` or \
-                    remove all other key values",
-                ));
-            }
-        };
-        is_first = false;
-    }
-    Ok(())
-}
-
-fn collect_attribute<'var, 'tok>(
-    var_info: &'var VariantInfo<'tok>,
-) -> syn::Result<VarAttribute<'var, 'tok>> {
-    let mut attr_iter = var_info
-        .ast()
-        .attrs
-        .iter()
-        .filter(|a| a.path().is_ident("versioned"));
-    let attribute = attr_iter.next().ok_or_else(|| {
-        Error::new_spanned(
-            var_info.ast().ident,
-            "variant missing attribute with name `versioned`",
-        )
-    })?;
-    let mut errors = Vec::new();
-    if let Some(attr) = attr_iter.next() {
-        errors.push(Error::new_spanned(
-            attr,
-            "duplicate `versioned` attribute in `VariantVersion` derive",
-        ));
-    }
-
-    let mut langs = vec![];
-    let mut sinces = vec![];
-    let mut untils = vec![];
-    if let Meta::List(MetaList { tokens, .. }) = &attribute.meta {
-        collect_attr_from_tokens(
-            tokens.clone(),
-            &mut langs,
-            &mut sinces,
-            &mut untils,
-        )
-        .map_err(|e| errors.push(e))
-        .ok();
-    } else {
-        errors.push(Error::new_spanned(
-            &attribute.meta,
-            "unexpected attribute format, \
-            use list format: i.e. `#[versioned(<options>)]`",
-        ));
-    }
-
-    collect_errors(errors)?;
-
-    Ok(VarAttribute {
-        var_info,
-        langs,
-        sinces,
-        untils,
-    })
 }
 
 fn gen_std_version_condition(
