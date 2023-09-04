@@ -26,35 +26,14 @@ fn gen_std_version_condition(
         const __langs: &[::clowncc_version::Language] = &[#langs];
         const __sinces: &[::clowncc_version::StdVersion] = &[#sinces];
         const __untils: &[::clowncc_version::StdVersion] = &[#untils];
-        let __lang_iter = __langs.iter().filter(|&&l| l == __lang);
-        let __since_iter = __sinces.iter().filter(|&&sv| *sv == __lang);
-        let __until_iter = __untils.iter().filter(|&&sv| *sv == __lang);
-        let __lang_count = __lang_iter.clone().count();
-        let __since_count = __since_iter.clone().count();
-        let __until_count = __until_iter.clone().count();
-        debug_assert!(
-            __lang_count <= 1,
-            "unexpected `lang` duplicates in `versioned` attribute",
-        );
-        debug_assert!(
-            __since_count <= 1,
-            "unexpected `since` duplicates in `versioned` attribute",
-        );
-        debug_assert!(
-            __until_count <= 1,
-            "unexpected `until` duplicates in `versioned` attribute",
-        );
-        let __since_opt = __since_iter.clone().next();
-        let __until_opt = __until_iter.clone().next();
-        match (__since_count, __until_count) {
-            (0, 0) => __lang_count == 1,
-            (1, 0) => sv.is_since(*__since_opt.unwrap()),
-            (0, 1) => sv.is_before(*__until_opt.unwrap()),
-            (1, 1) => {
-                sv.is_since(*__since_opt.unwrap())
-                    && sv.is_before(*__until_opt.unwrap())
-            }
-            _ => unreachable!(),
+        let __lang = __langs.iter().filter(|&&l| l == __svlang).next();
+        let __since = __sinces.iter().filter(|&&sv| *sv == __svlang).next();
+        let __until = __untils.iter().filter(|&&sv| *sv == __svlang).next();
+        match (__since, __until) {
+            (None, None) => __lang.is_some(),
+            (Some(&ssv), None) => sv.is_since(ssv),
+            (None, Some(&usv)) => sv.is_before(usv),
+            (Some(&ssv), Some(&usv)) => sv.is_since(ssv) && sv.is_before(usv),
         }
     }
 }
@@ -68,22 +47,10 @@ fn gen_language_condition(
         const __langs: &[::clowncc_version::Language] = &[#langs];
         const __sinces: &[::clowncc_version::StdVersion] = &[#sinces];
         const __untils: &[::clowncc_version::StdVersion] = &[#untils];
-        let __lang_count = __langs.iter().filter(|&&l| l == lang).count();
-        let __since_count = __sinces.iter().filter(|&&sv| *sv == lang).count();
-        let __until_count = __untils.iter().filter(|&&sv| *sv == lang).count();
-        debug_assert!(
-            __lang_count <= 1,
-            "unexpected `lang` duplicates in `versioned` attribute",
-        );
-        debug_assert!(
-            __since_count <= 1,
-            "unexpected `since` duplicates in `versioned` attribute",
-        );
-        debug_assert!(
-            __until_count <= 1,
-            "unexpected `until` duplicates in `versioned` attribute",
-        );
-        __lang_count != 0 || __since_count != 0 || __until_count != 0
+        let __lang = __langs.iter().filter(|&&l| l == lang).next();
+        let __since = __sinces.iter().filter(|&&sv| *sv == lang).next();
+        let __until = __untils.iter().filter(|&&sv| *sv == lang).next();
+        __lang.is_some() || __since.is_some() || __until.is_some()
     }
 }
 
@@ -150,7 +117,7 @@ pub fn versioned(definition: Structure) -> syn::Result<TokenStream> {
                 &self,
                 sv: ::clowncc_version::StdVersion
             ) -> bool {
-                let __lang = sv.as_language();
+                let __svlang = sv.as_language();
                 match self { #std_version_body }
             }
         }
