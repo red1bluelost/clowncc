@@ -3,6 +3,8 @@ use crate::{Cursor, DCharSeq, NumberBase, RawStrErr, Token, TokenKind};
 use clowncc_version::StdVersion;
 use expect_test::{expect, Expect};
 
+use std::fmt::Write;
+
 /// TODO: Move to support macro crate
 macro_rules! static_assert_size_eq {
     ($ty:ty, $size:expr) => {
@@ -24,16 +26,14 @@ fn check_tokens_impl<'c>(
     mut tok_fn: impl FnMut(&mut Cursor<'c>) -> Option<Token>,
 ) {
     let mut cursor = Cursor::new(code, sv);
-    let mut length_acc = 0;
-    let tokens: String = core::iter::from_fn(move || tok_fn(&mut cursor))
-        .map(|t| {
-            length_acc += t.length() as usize;
-            t
-        })
-        .map(|t| format!("{:?}\n", t))
-        .collect();
+    let mut total_len = 0;
+    let mut tokens = String::new();
+    for t in core::iter::from_fn(|| tok_fn(&mut cursor)) {
+        total_len += t.length();
+        write!(tokens, "{:?}\n", t).unwrap();
+    }
     expect.assert_eq(&tokens);
-    assert_eq!(code.len(), length_acc);
+    assert_eq!(code.len(), total_len.try_into().unwrap());
 }
 
 fn check_basic_tokens(sv: StdVersion, code: &str, expect: Expect) {

@@ -16,7 +16,7 @@ fn verify_impl(id: Ident, ty: &str, supported: &[&str]) -> syn::Result<Ident> {
     if name.starts_with("C++") {
         return Err(Error::new_spanned(
             id,
-            format!(
+            format_args!(
                 "unknown {} `{}`, use `Cpp` instead of `C++` only supports {}",
                 name,
                 ty,
@@ -27,7 +27,7 @@ fn verify_impl(id: Ident, ty: &str, supported: &[&str]) -> syn::Result<Ident> {
     if !supported.contains(&name.as_str()) {
         return Err(Error::new_spanned(
             id,
-            format!(
+            format_args!(
                 "unknown {} `{}`, only supports {}",
                 ty,
                 name,
@@ -46,14 +46,14 @@ fn verify_std_version(sv: Ident) -> syn::Result<Ident> {
     verify_impl(sv, "STD version", &STD_VERSIONS)
 }
 
-pub(super) struct VarAttribute<'var, 'tok> {
-    pub(super) var_info: &'var VariantInfo<'tok>,
+pub(super) struct VarAttribute<'var> {
+    pub(super) var_info: &'var VariantInfo<'var>,
     pub(super) langs: Vec<Ident>,
     pub(super) sinces: Vec<Ident>,
     pub(super) untils: Vec<Ident>,
 }
 
-impl VarAttribute<'_, '_> {
+impl VarAttribute<'_> {
     pub(super) fn is_universal(&self) -> bool {
         [&self.langs, &self.sinces, &self.untils]
             .iter()
@@ -156,7 +156,10 @@ fn check_duplication(
                 Item::Lang(k, _) | Item::Since(k, _) | Item::Until(k, _) => {
                     errors.push(Error::new_spanned(
                         item,
-                        format!("each language may contain only one `{}`", k),
+                        format_args!(
+                            "each language may contain only one `{}`",
+                            k
+                        ),
                     ))
                 }
             }
@@ -215,9 +218,9 @@ fn collect_attr_from_tokens(
     Ok(())
 }
 
-pub(super) fn collect_attribute<'var, 'tok>(
-    var_info: &'var VariantInfo<'tok>,
-) -> syn::Result<VarAttribute<'var, 'tok>> {
+pub(super) fn collect_attribute<'var>(
+    var_info: &'var VariantInfo<'var>,
+) -> syn::Result<VarAttribute<'var>> {
     let mut attr_iter = var_info
         .ast()
         .attrs
