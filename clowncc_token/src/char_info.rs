@@ -1,6 +1,12 @@
 use clowncc_version::StdVersion;
 
-pub trait CharInfo: Copy {
+mod internal {
+    pub trait Sealed {}
+}
+
+impl internal::Sealed for char {}
+
+pub trait CharInfo: internal::Sealed + Copy {
     fn is_id_start(self) -> bool;
     fn is_id_continue(self) -> bool;
     fn is_in_basic_set(self, sv: StdVersion) -> bool;
