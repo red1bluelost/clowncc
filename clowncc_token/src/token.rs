@@ -65,6 +65,20 @@ impl TokenKind {
         )
     }
 
+    /// Indicates whether the token type can span multiple lines without escaped
+    /// newlines. If a token is not multi line but contains a newline then it
+    /// requires preprocessing.
+    #[must_use]
+    pub const fn is_multi_line(self) -> bool {
+        matches!(
+            self,
+            TK::BadRawStr(_)
+                | TK::BlockComment
+                | TK::Whitespace { .. }
+                | TK::RawStr { .. }
+        )
+    }
+
     #[must_use]
     pub const fn is_multi_char(self) -> bool {
         matches!(
