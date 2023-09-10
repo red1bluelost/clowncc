@@ -11,7 +11,7 @@
 //!
 //! Delimited tokens (`BlockComment`, `SystemHeader`, `Header`, `Str`,
 //! `CharSeq`) may be unterminated but contain a flag indicating this error.
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 
 mod char_info;
 mod cursor;
