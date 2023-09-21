@@ -11,10 +11,6 @@ use core::marker::PhantomData;
 #[cfg(test)]
 mod tests;
 
-/// TODO: Make actual error type
-#[derive(Debug)]
-pub struct FromStrError<T>(PhantomData<T>);
-
 language::implement! {
     [c, "c"],
     [cpp, "c++"],

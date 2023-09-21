@@ -31,11 +31,11 @@ macro_rules! define_info_enum {
             }
 
             impl ::core::str::FromStr for $enum_id {
-                type Err = crate::FromStrError<$enum_id>;
+                type Err = ();
                 fn from_str(s: &str) -> Result<Self, Self::Err> {
                     match s {
                         $($name_str => Ok(Self::[<$id_snake:camel>]),)*
-                        _ => Err(crate::FromStrError(PhantomData)),
+                        _ => Err(()),
                     }
                 }
             }
