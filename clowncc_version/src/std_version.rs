@@ -3,7 +3,7 @@ use crate::StdVersion;
 macro_rules! implement {
     ($([$lang:ident, $id_snake:ident, $name_str:expr]),* $(,)?) => {
         ::paste::paste! {
-            crate::common_macros::define_info_enum!{
+            $crate::common_macros::define_info_enum!{
                 #[derive(Ord, PartialOrd)]
                 StdVersion: $([$id_snake, $name_str]),*,
             }
