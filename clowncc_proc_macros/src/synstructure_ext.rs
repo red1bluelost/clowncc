@@ -15,7 +15,7 @@ impl VariantInfoExt for VariantInfo<'_> {
 
     fn construct_unit(&self) -> TokenStream {
         self.construct(|_, _| -> TokenStream {
-            unreachable!("expected variant to be a unit")
+            panic!("expected variant to be a unit")
         })
     }
 }
