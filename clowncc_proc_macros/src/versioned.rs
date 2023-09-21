@@ -1,21 +1,14 @@
 mod var_attribute;
 
-use var_attribute::{collect_attribute, VarAttribute};
+use var_attribute::VarAttribute;
 
+use crate::syn_ext;
+
+use crate::errors::ErrorsBuilder;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Error;
 use synstructure::Structure;
-
-fn collect_errors(errors: Vec<Error>) -> syn::Result<()> {
-    errors
-        .into_iter()
-        .reduce(|mut f, r| {
-            f.combine(r);
-            f
-        })
-        .map_or(Ok(()), Err)
-}
 
 fn gen_std_version_condition(
     langs: TokenStream,
@@ -90,7 +83,7 @@ fn generate_body(
     stream
 }
 
-pub fn versioned(definition: Structure) -> syn::Result<TokenStream> {
+pub(crate) fn versioned(definition: Structure) -> syn::Result<TokenStream> {
     let num_variants = definition.variants().len();
     if num_variants == 0 {
         return Err(Error::new_spanned(
@@ -100,12 +93,16 @@ pub fn versioned(definition: Structure) -> syn::Result<TokenStream> {
     }
 
     let mut var_attrs = Vec::with_capacity(num_variants);
-    let mut errors = Vec::new();
-    for res in definition.variants().iter().map(collect_attribute) {
-        res.map_or_else(|e| errors.push(e), |va| var_attrs.push(va));
-    }
+    let mut errors = ErrorsBuilder::new();
+    definition
+        .variants()
+        .iter()
+        .map(var_attribute::collect_attribute)
+        .for_each(|res| {
+            res.map_or_else(|e| errors.push(e), |va| var_attrs.push(va))
+        });
 
-    collect_errors(errors)?;
+    errors.collect()?;
 
     let std_version_body = generate_body(&var_attrs, gen_std_version_condition);
     let language_body = generate_body(&var_attrs, gen_language_condition);

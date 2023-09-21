@@ -1,3 +1,6 @@
+use crate::syn_ext;
+
+use crate::errors::ErrorsBuilder;
 use proc_macro2::{Ident, TokenStream};
 use quote::{ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
@@ -10,6 +13,28 @@ const STD_VERSIONS: [&str; 12] = [
     "C89", "C95", "C99", "C11", "C17", "C23", "Cpp11", "Cpp14", "Cpp17",
     "Cpp20", "Cpp23", "Cpp26",
 ];
+
+#[test]
+fn matches_version_package() {
+    use clowncc_version::{Language, StdVersion};
+    use strum::IntoEnumIterator;
+
+    let version_strings: Vec<_> =
+        StdVersion::iter().map(StdVersion::as_str).collect();
+    let macro_strings: Vec<_> = STD_VERSIONS
+        .into_iter()
+        .map(|s| s.to_lowercase().replace("pp", "++"))
+        .collect();
+    assert_eq!(version_strings, macro_strings);
+
+    let version_strings: Vec<_> =
+        Language::iter().map(Language::as_str).collect();
+    let macro_strings: Vec<_> = LANGS
+        .into_iter()
+        .map(|s| s.to_lowercase().replace("pp", "++"))
+        .collect();
+    assert_eq!(version_strings, macro_strings);
+}
 
 fn verify_impl(id: Ident, ty: &str, supported: &[&str]) -> syn::Result<Ident> {
     let name = id.to_string();
@@ -128,7 +153,7 @@ impl Parse for Items {
 fn check_duplication(
     item_iter: &Punctuated<Item, Token![,]>,
 ) -> syn::Result<()> {
-    let mut errors = Vec::new();
+    let mut errors = ErrorsBuilder::new();
     for l in LANGS {
         let mut first_lang = None;
         let mut first_since = None;
@@ -154,24 +179,24 @@ fn check_duplication(
                     first_until = Some(item)
                 }
                 Item::Lang(k, _) | Item::Since(k, _) | Item::Until(k, _) => {
-                    errors.push(Error::new_spanned(
+                    errors.emplace(
                         item,
                         format_args!(
                             "each language may contain only one `{}`",
                             k
                         ),
-                    ))
+                    )
                 }
             }
         }
         if first_lang.and(first_since.or(first_until)).is_some() {
-            errors.push(Error::new_spanned(
+            errors.emplace(
                 first_lang,
                 "`lang` exists so `since` and `until` should not be present",
-            ));
+            );
         }
     }
-    super::collect_errors(errors)
+    errors.collect()
 }
 
 fn collect_attr_from_tokens(
@@ -219,7 +244,7 @@ fn collect_attr_from_tokens(
 }
 
 pub(super) fn collect_attribute<'var>(
-    var_info: &'var VariantInfo<'var>,
+    var_info: &'var VariantInfo<'_>,
 ) -> syn::Result<VarAttribute<'var>> {
     let mut attr_iter = var_info
         .ast()
@@ -232,12 +257,12 @@ pub(super) fn collect_attribute<'var>(
             "variant missing attribute with name `versioned`",
         )
     })?;
-    let mut errors = Vec::new();
+    let mut errors = ErrorsBuilder::new();
     if let Some(attr) = attr_iter.next() {
-        errors.push(Error::new_spanned(
+        errors.emplace(
             attr,
             "duplicate `versioned` attribute in `VariantVersion` derive",
-        ));
+        );
     }
 
     let mut langs = vec![];
@@ -253,16 +278,14 @@ pub(super) fn collect_attribute<'var>(
         .map_err(|e| errors.push(e))
         .ok();
     } else {
-        errors.push(Error::new_spanned(
+        errors.emplace(
             &attribute.meta,
             "unexpected attribute format, \
             use list format: i.e. `#[versioned(<options>)]`",
-        ));
+        );
     }
 
-    super::collect_errors(errors)?;
-
-    Ok(VarAttribute {
+    errors.collect().map(move |()| VarAttribute {
         var_info,
         langs,
         sinces,
