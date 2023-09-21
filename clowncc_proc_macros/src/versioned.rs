@@ -2,9 +2,8 @@ mod var_attribute;
 
 use var_attribute::VarAttribute;
 
-use crate::syn_ext;
-
 use crate::errors::ErrorsBuilder;
+
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Error;

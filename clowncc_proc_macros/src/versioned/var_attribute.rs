@@ -1,5 +1,3 @@
-use crate::syn_ext;
-
 use crate::errors::ErrorsBuilder;
 use proc_macro2::{Ident, TokenStream};
 use quote::{ToTokens, TokenStreamExt};

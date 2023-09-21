@@ -1,4 +1,3 @@
-use crate::syn_ext;
 use crate::synstructure_ext::VariantInfoExt;
 use std::collections::hash_map::{Entry, HashMap};
 
@@ -89,7 +88,7 @@ pub(crate) fn keyword_enum(structure: Structure) -> syn::Result<TokenStream> {
     };
 
     let strings = collect_keywords(&data_enum)?;
-    let type_name = &structure.ast().ident;
+    check_no_duplicates(&strings)?;
 
     let map_elms: TokenStream = structure
         .variants()
@@ -99,6 +98,7 @@ pub(crate) fn keyword_enum(structure: Structure) -> syn::Result<TokenStream> {
         .map(|(v, &s)| quote!(#s => #v,))
         .collect();
 
+    let type_name = &structure.ast().ident;
     Ok(structure.gen_impl(quote! {
         extern crate phf;
         impl #type_name {
