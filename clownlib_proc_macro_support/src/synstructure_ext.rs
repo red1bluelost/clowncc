@@ -3,7 +3,7 @@ use crate::syn_ext::FieldsExt;
 use proc_macro2::TokenStream;
 use synstructure::VariantInfo;
 
-pub(crate) trait VariantInfoExt {
+pub trait VariantInfoExt {
     fn is_unit(&self) -> bool;
     fn construct_unit(&self) -> TokenStream;
 }

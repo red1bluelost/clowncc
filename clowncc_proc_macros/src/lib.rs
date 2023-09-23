@@ -1,7 +1,4 @@
-mod errors;
 mod keyword_enum;
-mod syn_ext;
-mod synstructure_ext;
 mod versioned;
 
 use synstructure::{decl_attribute, decl_derive};

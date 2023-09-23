@@ -1,4 +1,5 @@
-use crate::errors::ErrorsBuilder;
+use clownlib_proc_macro_support::errors::ErrorsBuilder;
+
 use proc_macro2::{Ident, TokenStream};
 use quote::{ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};

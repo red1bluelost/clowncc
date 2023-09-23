@@ -2,7 +2,7 @@ mod var_attribute;
 
 use var_attribute::VarAttribute;
 
-use crate::errors::ErrorsBuilder;
+use clownlib_proc_macro_support::errors::ErrorsBuilder;
 
 use proc_macro2::TokenStream;
 use quote::quote;

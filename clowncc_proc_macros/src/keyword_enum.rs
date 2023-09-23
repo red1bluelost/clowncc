@@ -1,7 +1,6 @@
-use crate::synstructure_ext::VariantInfoExt;
-use std::collections::hash_map::{Entry, HashMap};
+use clownlib_proc_macro_support::errors::ErrorsBuilder;
+use clownlib_proc_macro_support::synstructure_ext::VariantInfoExt;
 
-use crate::errors::ErrorsBuilder;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
@@ -9,6 +8,8 @@ use syn::{
     MetaNameValue,
 };
 use synstructure::{Structure, VariantInfo};
+
+use std::collections::hash_map::{Entry, HashMap};
 
 fn collect_keywords(data_enum: &DataEnum) -> syn::Result<Vec<&LitStr>> {
     let mut strings = Vec::with_capacity(data_enum.variants.len());

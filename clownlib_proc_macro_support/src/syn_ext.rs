@@ -1,10 +1,8 @@
+use proc_macro2;
 use quote::ToTokens;
 use syn::Fields;
 
-pub(crate) trait ResultExt: Sized {
-    fn into_token_stream(self) -> proc_macro::TokenStream {
-        self.into_token_stream2().into()
-    }
+pub trait ResultExt: Sized {
     fn into_token_stream2(self) -> proc_macro2::TokenStream;
 }
 
@@ -14,7 +12,7 @@ impl<T: ToTokens> ResultExt for syn::Result<T> {
     }
 }
 
-pub(crate) trait FieldsExt {
+pub trait FieldsExt {
     fn is_unit(&self) -> bool;
 }
 

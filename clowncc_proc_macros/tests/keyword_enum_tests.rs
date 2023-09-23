@@ -1,15 +1,19 @@
 use clowncc_proc_macros::KeywordEnum;
 
-#[test]
-fn single_keyword() {
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, KeywordEnum)]
-    enum E {
-        #[keyword = "A"]
-        A,
-    }
+mod sub_module {
+    use clowncc_proc_macros::KeywordEnum;
 
-    assert_eq!("A".parse(), Ok(E::A));
-    assert_eq!("B".parse::<E>(), Err(()));
+    #[test]
+    fn single_keyword() {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, KeywordEnum)]
+        enum Es {
+            #[keyword = "A"]
+            A,
+        }
+
+        assert_eq!("A".parse(), Ok(Es::A));
+        assert_eq!("B".parse::<Es>(), Err(()));
+    }
 }
 
 #[test]
