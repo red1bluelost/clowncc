@@ -11,4 +11,6 @@ bitflags = "2.3.3"
 unicode-ident = "1.0.11"
 
 [dev-dependencies]
+clownlib_static_assert = { path = "../clownlib_static_assert" }
+
 expect-test = "1.4.0"

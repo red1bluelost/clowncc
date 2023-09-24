@@ -7,5 +7,6 @@ members = [
   "clowncc_token",
   "clowncc_version",
   "clownlib_proc_macro_support",
+  "clownlib_static_assert",
   "clownlib_std_ext",
 ]
