@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 paste = "1.0.14"
 strum = "0.25.0"
-strum_macros = "0.25.1"
+strum_macros = "0.25.2"
