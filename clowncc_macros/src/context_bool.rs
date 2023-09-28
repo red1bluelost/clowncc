@@ -5,7 +5,7 @@
 ///
 /// # Example
 /// ```rust
-/// clowncc_macros::define_yes_no!{
+/// clowncc_macros::yes_no!{
 ///     pub ClearFirst;
 /// }
 ///
@@ -25,41 +25,113 @@
 /// assert_eq!(v, vec![0, 0, 0, 0, 0]);
 /// ```
 #[macro_export]
-macro_rules! define_yes_no {
-    (
+macro_rules! yes_no {
+    {
         $(#[$attrs:meta])*
         $access:vis $name:ident;
+    } => {
+        $crate::custom_bool!{
+            $(#[$attrs])*
+            #[derive(Default)]
+            $access $name {
+                #[default]
+                No = false,
+                Yes = true,
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! custom_bool {
+    (
+        $(#[$attrs:meta])*
+        $access:vis $name:ident {
+            $(#[$a_attrs:meta])* $a_id:ident $(= $a_bool:tt)?,
+            $(#[$b_attrs:meta])* $b_id:ident $(= $b_bool:tt)? $(,)?
+        }
     ) => {
         $(#[$attrs])*
-        #[must_use]
-        #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+        #[derive(Copy, Clone, Debug, Eq, PartialEq)]
         $access enum $name {
-            #[default]
-            No,
-            Yes,
+            $(#[$a_attrs])*
+            $a_id,
+            $(#[$b_attrs])*
+            $b_id,
         }
 
         impl $name {
-            #[must_use]
-            $access const fn is_no(self) -> bool {
-                matches!(self, Self::No)
-            }
-            #[must_use]
-            $access const fn is_yes(self) -> bool {
-                matches!(self, Self::Yes)
+            $crate::__paste::paste! {
+                #[inline]
+                #[must_use]
+                $access const fn [<is_ $a_id:snake>](self) -> bool {
+                    matches!(self, Self::$a_id)
+                }
+
+                #[inline]
+                #[must_use]
+                $access const fn [<is_ $b_id:snake>](self) -> bool {
+                    matches!(self, Self::$b_id)
+                }
             }
         }
 
+        $crate::__to_from_bool!{
+            $name,
+            $a_id $(= $a_bool)?,
+            $b_id $(= $b_bool)?,
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! __to_from_bool {
+    [$name:ident, $a_id:ident = true, $b_id:ident = false,] => {
+        $crate::__to_from_bool_unchecked!($name, $a_id = true, $b_id = false,);
+    };
+
+    [$name:ident, $a_id:ident = false, $b_id:ident = true,] => {
+        $crate::__to_from_bool_unchecked!($name, $a_id = false, $b_id = true,);
+    };
+
+    [$name:ident, $a_id:ident, $b_id:ident,] => {};
+
+    ($($_:tt)*) => {
+        compile_error!(
+r#"when assigning discriminant you must use `true` and `false`, example:
+custom_bool! {
+    pub What {
+        NuhUh = false,
+        YuhHuh = true,
+    }
+}"#
+        );
+    }
+}
+
+#[macro_export]
+macro_rules! __to_from_bool_unchecked {
+    {
+        $name:ident,
+        $a_id:ident = $a_bool:literal,
+        $b_id:ident = $b_bool:literal,
+    } => {
         impl From<$name> for bool {
             fn from(v: $name) -> bool {
-                v.is_yes()
+                match v {
+                    $name::$a_id => $a_bool,
+                    $name::$b_id => $b_bool,
+                }
             }
         }
 
         impl From<bool> for $name {
             fn from(v: bool) -> $name {
-                if v { $name::Yes } else { $name::No }
+                match v {
+                    $a_bool => $name::$a_id,
+                    $b_bool => $name::$b_id,
+                }
             }
         }
-    }
+    };
 }
