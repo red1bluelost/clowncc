@@ -5,7 +5,7 @@ use std::fmt::Display;
 pub struct ErrorsBuilder(Vec<syn::Error>);
 
 impl ErrorsBuilder {
-    pub fn new() -> ErrorsBuilder {
+    pub const fn new() -> ErrorsBuilder {
         Self(Vec::new())
     }
 
