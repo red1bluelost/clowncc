@@ -6,8 +6,6 @@ mod std_version;
 
 use strum_macros::EnumIter;
 
-use core::marker::PhantomData;
-
 #[cfg(test)]
 mod tests;
 
