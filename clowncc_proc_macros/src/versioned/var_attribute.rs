@@ -94,7 +94,7 @@ enum Item {
     Until(Ident, Ident),
 }
 impl Item {
-    fn get_lang(&self) -> Option<&Ident> {
+    fn language(&self) -> Option<&Ident> {
         match self {
             Item::Universal(_) => None,
             Item::Lang(_, l) | Item::Since(_, l) | Item::Until(_, l) => Some(l),
@@ -158,7 +158,7 @@ fn check_duplication(
         let mut first_since = None;
         let mut first_until = None;
         for item in item_iter.iter().filter(|item| {
-            item.get_lang().map_or(false, |i| {
+            item.language().map_or(false, |i| {
                 i.to_string()
                     .trim_start_matches(l)
                     .chars()
