@@ -6,7 +6,7 @@
 /// # Example
 /// ```rust
 /// clowncc_macros::yes_no!{
-///     pub ClearFirst;
+///     pub enum ClearFirst;
 /// }
 ///
 /// pub fn add_n_zeros(n: usize, clear_first: ClearFirst, v: &mut Vec<i32>) {
@@ -28,12 +28,12 @@
 macro_rules! yes_no {
     {
         $(#[$attrs:meta])*
-        $access:vis $name:ident;
+        $access:vis enum $name:ident;
     } => {
         $crate::custom_bool!{
             $(#[$attrs])*
             #[derive(Default)]
-            $access $name {
+            $access enum $name {
                 #[default]
                 No = false,
                 Yes = true,
@@ -46,7 +46,7 @@ macro_rules! yes_no {
 macro_rules! custom_bool {
     (
         $(#[$attrs:meta])*
-        $access:vis $name:ident {
+        $access:vis enum $name:ident {
             $(#[$a_attrs:meta])* $a_id:ident $(= $a_bool:tt)?,
             $(#[$b_attrs:meta])* $b_id:ident $(= $b_bool:tt)? $(,)?
         }
@@ -61,7 +61,7 @@ macro_rules! custom_bool {
         }
 
         impl $name {
-            $crate::__paste::paste! {
+            $crate::__internal::__paste::paste! {
                 #[inline]
                 #[must_use]
                 $access const fn [<is_ $a_id:snake>](self) -> bool {
