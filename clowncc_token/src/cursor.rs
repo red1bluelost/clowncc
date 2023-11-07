@@ -34,18 +34,18 @@ impl QuoteType {
     }
 }
 
-clowncc_macros::yes_no! {
+context_type::boolean::yes_no! {
     /// When parsing a universal character or escaped newline, the caller may
     /// want the initial backslash consumed or not consumed during the
     /// speculative parse.
     enum EatSlash;
 }
-clowncc_macros::yes_no! {
+context_type::boolean::yes_no! {
     /// Tokenizing has no state so the caller must choose when to treat quotes
     /// `"` or angle brackets `<` as headers or regular tokens.
     enum ExpectHeader;
 }
-clowncc_macros::yes_no! {
+context_type::boolean::yes_no! {
     /// Parsing an identifier may perform a few steps before entering the
     /// dedicated function. If a universal char is consumed, it must be
     /// communicated to the function as it consumes the rest of the identifier.
