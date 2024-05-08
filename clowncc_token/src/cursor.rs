@@ -1,8 +1,10 @@
 use QuoteType as QT;
 use TokenKind as TK;
 
-use crate::token::{LitType, NumberBase, RawStrErr, Token, TokenFlags};
-use crate::{CharInfo, DCharSeq, TokenKind};
+use crate::{
+    token::{LitType, NumberBase, RawStrErr, Token, TokenFlags},
+    CharInfo, DCharSeq, TokenKind,
+};
 
 use clowncc_macros::debug_assert;
 use clowncc_version::StdVersion;

@@ -1,5 +1,6 @@
-use clownlib_proc_macro_support::errors::ErrorsBuilder;
-use clownlib_proc_macro_support::synstructure_ext::VariantInfoExt;
+use clownlib_proc_macro_support::{
+    errors::ErrorsBuilder, synstructure_ext::VariantInfoExt,
+};
 
 use proc_macro2::TokenStream;
 use quote::quote;

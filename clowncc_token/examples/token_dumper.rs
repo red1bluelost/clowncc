@@ -1,8 +1,10 @@
 use clowncc_token::{Cursor, TokenKind};
 
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::io::Read;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    alloc::{GlobalAlloc, Layout, System},
+    io::Read,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum ParseHeader {

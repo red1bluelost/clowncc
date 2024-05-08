@@ -2,9 +2,11 @@ use clownlib_proc_macro_support::errors::ErrorsBuilder;
 
 use proc_macro2::{Ident, TokenStream};
 use quote::{ToTokens, TokenStreamExt};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{Error, Meta, MetaList, Token};
+use syn::{
+    parse::{Parse, ParseStream},
+    punctuated::Punctuated,
+    Error, Meta, MetaList, Token,
+};
 use synstructure::VariantInfo;
 
 const LANGS: [&str; 2] = ["C", "Cpp"];
