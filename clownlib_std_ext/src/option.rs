@@ -1,25 +1,34 @@
-pub trait OptionExt: crate::internal::Sealed {
-    type T;
-    fn err(self) -> Result<(), Self::T>;
-    fn err_or<O>(self, ok: O) -> Result<O, Self::T>;
-    fn err_or_else<O>(self, ok: impl FnOnce() -> O) -> Result<O, Self::T>;
+mod internal {
+    pub trait Sealed<T> {}
+    impl<T> Sealed<T> for Option<T> {}
 }
 
-impl<T> crate::internal::Sealed for Option<T> {}
+pub trait OptionExt<T>: internal::Sealed<T> {
+    fn err(self) -> Result<(), T>;
+    fn err_or<O>(self, ok: O) -> Result<O, T>;
+    fn err_or_else<O>(self, ok: impl FnOnce() -> O) -> Result<O, T>;
 
-impl<T> OptionExt for Option<T> {
-    type T = T;
+    fn map_or_default<U: Default>(self, f: impl FnOnce(T) -> U) -> U;
+}
 
-    fn err(self) -> Result<(), Self::T> {
+impl<T> OptionExt<T> for Option<T> {
+    fn err(self) -> Result<(), T> {
         self.map_or(Ok(()), Err)
     }
 
-    fn err_or<O>(self, ok: O) -> Result<O, Self::T> {
+    fn err_or<O>(self, ok: O) -> Result<O, T> {
         self.map_or(Ok(ok), Err)
     }
 
-    fn err_or_else<O>(self, ok: impl FnOnce() -> O) -> Result<O, Self::T> {
+    fn err_or_else<O>(self, ok: impl FnOnce() -> O) -> Result<O, T> {
         self.map_or_else(|| Ok(ok()), Err)
+    }
+
+    fn map_or_default<U: Default>(self, f: impl FnOnce(T) -> U) -> U {
+        match self {
+            Some(t) => f(t),
+            None => U::default(),
+        }
     }
 }
 
@@ -43,5 +52,11 @@ mod tests {
     fn option_err_or_else() {
         assert_eq!(Some(3).err_or_else(|| "hi"), Err(3));
         assert_eq!(None::<i32>.err_or_else(|| "hello"), Ok("hello"));
+    }
+
+    #[test]
+    fn option_map_or_default() {
+        assert_eq!(Some(4).map_or_default(|n| vec![(); n]), vec![(); 4]);
+        assert_eq!(None.map_or_default(|n| vec![(); n]), vec![(); 0]);
     }
 }
